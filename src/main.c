@@ -1,71 +1,97 @@
-#include "../include/kernel.h"
-#include "../include/bcp.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-// Função para limpar a tela (opcional, para clareza)
-void clearScreen() {
-    system("clear"); // Linux/Mac
+#include "kernel.h"
+#include "bcp.h"
+#include "interpreter.h"
+#include "memory.h"
+#include "scheduler.h"
+#include "clock.h"
+#include "semaphore.h"
+
+void show_menu() {
+    printf("\n=== SIMULADOR DE NÚCLEO DE SO ===\n");
+    printf("1. Carregar programa sintético\n");
+    printf("2. Listar processos\n");
+    printf("3. Executar ciclo de evento\n");
+    printf("4. Visualizar estado da memória\n");
+    printf("5. Exibir tempo do relógio virtual\n");
+    printf("6. Forçar liberação de um semáforo (V)\n");
+    printf("0. Sair\n");
+    printf("Escolha: ");
 }
 
 int main() {
-    int option;
-    int pid;
-
-    initKernel();
+    kernel_init();
+    int opcao;
+    char filepath[128];
 
     while (1) {
-        clearScreen(); // opcional, comentar se não quiser limpar a tela
+        show_menu();
+        if (scanf("%d", &opcao) != 1) break;
+        getchar();
 
-        printf("===== SIMULADOR DE NÚCLEO - MENU PRINCIPAL =====\n");
-        printf("1. Create process\n");
-        printf("2. Finish process\n");
-        printf("3. Request disk (blocks process)\n");
-        printf("4. Disk operation finished (unblocks process)\n");
-        printf("5. Show process table\n");
-        printf("0. Exit\n");
-        printf("Option: ");
-        scanf("%d", &option);
-
-        switch (option) {
+        switch (opcao) {
             case 1:
-                printf("Enter PID to create (0-9): ");
-                scanf("%d", &pid);
-                sysCall(2, pid);  // PROCESS_CREATE
+                printf("Digite o caminho do programa sintético (.txt): ");
+                fgets(filepath, sizeof(filepath), stdin);
+                filepath[strcspn(filepath, "\n")] = 0;
+                if (interpreter_load_program(filepath) >= 0) {
+                    printf("[OK] Programa carregado com sucesso.\n");
+                } else {
+                    printf("[ERRO] Falha ao carregar programa.\n");
+                }
                 break;
 
             case 2:
-                printf("Enter PID to finish: ");
-                scanf("%d", &pid);
-                sysCall(3, pid);  // PROCESS_FINISH
+                bcp_print_all();
                 break;
 
-            case 3:
-                printf("Enter PID to request disk access: ");
-                scanf("%d", &pid);
-                sysCall(4, pid);  // DISK_REQUEST (bloqueia)
+            case 3: {
+                int curr = scheduler_get_current();
+                if (curr == -1) {
+                    scheduler_select_next();
+                    curr = scheduler_get_current();
+                }
+
+                if (curr != -1) {
+                    kernel_handle_event(EVENT_PROCESS_INTERRUPT);
+                } else {
+                    int event = interruptControl();
+                    if (event == -1) {
+                        printf("[INFO] Nenhum evento a processar.\n");
+                    } else {
+                        printf("[INFO] Evento %d recebido.\n", event);
+                        kernel_handle_event(event);
+                    }
+                }
                 break;
+            }
 
             case 4:
-                printf("Enter PID that finished disk operation: ");
-                scanf("%d", &pid);
-                interruptControl(5, pid);  // DISK_FINISH (desbloqueia)
+                memory_print();
                 break;
 
             case 5:
-                bcp_showProcesses();  // exibe todos os processos
-                printf("\nPress ENTER to continue...");
-                getchar(); getchar(); // aguarda ENTER duas vezes
+                printf("[CLOCK] Tempo atual do relógio virtual: %d unidades\n", clock_get_time());
                 break;
+
+            case 6: {
+                char sem_id[16];
+                printf("Digite o nome do semáforo a liberar: ");
+                fgets(sem_id, sizeof(sem_id), stdin);
+                sem_id[strcspn(sem_id, "\n")] = 0;
+                semaphore_V(sem_id);
+                break;
+            }
 
             case 0:
-                printf("Exiting simulator...\n");
+                printf("Encerrando simulador...\n");
                 exit(0);
-                break;
 
             default:
-                printf("Invalid option!\n");
-                break;
+                printf("[ERRO] Opção inválida.\n");
         }
     }
 

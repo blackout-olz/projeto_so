@@ -1,0 +1,11 @@
+prog3
+3
+1
+32
+s
+
+exec 300
+P(s)
+exec 300
+V(s)
+exec 300

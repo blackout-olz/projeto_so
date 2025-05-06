@@ -1,0 +1,10 @@
+prog4
+4
+4
+32
+s
+
+exec 100
+V(s)
+exec 100
+V(s)

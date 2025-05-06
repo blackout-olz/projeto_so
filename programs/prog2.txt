@@ -1,0 +1,11 @@
+prog2
+2
+2
+32
+s
+
+exec 500
+P(s)
+exec 500
+V(s)
+exec 500

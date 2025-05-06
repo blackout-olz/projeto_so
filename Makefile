@@ -1,57 +1,26 @@
-# Compilador
+# Makefile
+
 CC = gcc
+CFLAGS = -Wall -Iinclude
 
-# Diretórios
-SRC_DIR = src
-BIN_DIR = bin
-INCLUDE_DIR = include
+SRC = \
+  src/main.c \
+  src/kernel/bcp.c \
+  src/kernel/kernel.c \
+  src/kernel/scheduler.c \
+  src/memory/memory.c \
+  src/semaphore/semaphore.c \
+  src/synthetic_program/clock.c \
+  src/synthetic_program/interpreter.c
 
-# Flags de compilação
-CFLAGS = -Wall -I$(INCLUDE_DIR)
-LDFLAGS = -lpthread    # caso use pthread futuramente
+OBJ = $(SRC:.c=.o)
 
-# Arquivos fonte (módulos)
-KERNEL_SRC = $(SRC_DIR)/kernel/kernel.c
-BCP_SRC = $(SRC_DIR)/kernel/bcp.c
-# Adicione o scheduler quando for implementado:
-# SCHEDULER_SRC = $(SRC_DIR)/kernel/scheduler.c
+EXEC = simulador
 
-# Arquivo principal
-MAIN_SRC = $(SRC_DIR)/main.c
+all: $(EXEC)
 
-# Objetos
-OBJS = $(MAIN_SRC:.c=.o) $(KERNEL_SRC:.c=.o) $(BCP_SRC:.c=.o)
-# Inclua o scheduler depois:
-# OBJS += $(SCHEDULER_SRC:.c=.o)
+$(EXEC): $(SRC)
+	$(CC) $(CFLAGS) -o $@ $^
 
-# Nome do binário
-TARGET = $(BIN_DIR)/sim
-
-# Regra padrão
-all: $(TARGET)
-
-# Linkagem final
-$(TARGET): $(OBJS)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
-
-# Compilação dos .c em .o
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Limpeza dos arquivos objeto e do executável
 clean:
-	rm -f $(SRC_DIR)/**/*.o
-	rm -f $(SRC_DIR)/*.o
-	rm -f $(TARGET)
-
-# Facilita pra rodar direto pelo make
-run: all
-	./$(TARGET)
-
-# Ajuda básica
-help:
-	@echo "Comandos disponíveis:"
-	@echo "  make          - Compila o projeto"
-	@echo "  make run      - Compila e executa o simulador"
-	@echo "  make clean    - Limpa arquivos compilados"
+	rm -f $(EXEC) *.o src/*/*.o
